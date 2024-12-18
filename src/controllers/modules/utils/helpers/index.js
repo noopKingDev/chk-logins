@@ -11,7 +11,7 @@ export const getString = (string, start, end) => {
 };
 
 
-export const createBrowser = async ({ url, handle }) => {
+export const createBrowser = async ({ url, handle, waitFor }) => {
   try {
     // if (browseActive) {
     //   browseActive = !browseActive;
@@ -24,7 +24,7 @@ export const createBrowser = async ({ url, handle }) => {
     const page = await browser.newPage();
 
      await page.goto(url, { timeout: 0 });
-     await page.waitForSelector('[data-testid="login-input"]', {timeout: 0})
+     await page.waitForSelector(waitFor, {timeout: 0})
 
     return page
   } catch (error) {
